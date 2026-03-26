@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paisa — AI Expense Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">₹</div>
+      <div>
+        <div class="logo-name">Paisa</div>
+        <div class="logo-sub">AI Expense Tracker</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="db-status">
+        <div class="db-dot loading" id="dbDot"></div>
+        <span id="dbText">Connecting…</span>
+      </div>
+      <div class="tab-group">
+        <button class="tab active" id="tab-tracker" onclick="switchView('tracker')">Tracker</button>
+        <button class="tab ai-tab" id="tab-ai" onclick="switchView('ai')">
+          <span class="ai-dot"></span>AI + Voice
+        </button>
+        <button class="tab" id="tab-history" onclick="switchView('history')">History</button>
+      </div>
+      <div class="month-nav">
+        <button class="month-btn" onclick="changeMonth(-1)">&#8249;</button>
+        <span class="month-label" id="monthLabel">—</span>
+        <button class="month-btn" onclick="changeMonth(1)">&#8250;</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ALERT BANNER -->
+  <div class="alert-banner" id="alertBanner">
+    <span class="alert-icon" id="alertIcon"></span>
+    <span id="alertText"></span>
+  </div>
+
+  <!-- SUMMARY CARDS -->
+  <div class="summary-grid">
+    <div class="summary-card card-budget">
+      <div class="card-label">Monthly Budget</div>
+      <div class="card-value" id="cardBudget">—</div>
+      <div class="card-sub" id="cardBudgetSub">not set</div>
+      <div class="budget-input-row">
+        <input type="number" class="budget-input" id="budgetInput" placeholder="Enter budget…" oninput="onBudgetType(this.value)">
+        <button class="budget-save-btn" onclick="saveBudget()">Save</button>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+    </div>
+    <div class="summary-card card-spent">
+      <div class="card-label">Total Spent</div>
+      <div class="card-value" id="cardSpent">₹0</div>
+      <div class="card-sub" id="cardSpentSub">this month</div>
+    </div>
+    <div class="summary-card card-remaining">
+      <div class="card-label">Remaining</div>
+      <div class="card-value" id="cardRemaining">—</div>
+      <div class="card-sub" id="cardRemainingSub">set budget first</div>
+    </div>
+    <div class="summary-card card-count">
+      <div class="card-label">Transactions</div>
+      <div class="card-value" id="cardCount">0</div>
+      <div class="card-sub" id="cardAvg">—</div>
+    </div>
+    <div class="summary-card card-daily">
+      <div class="card-label">Daily Average</div>
+      <div class="card-value" id="cardDaily">₹0</div>
+      <div class="card-sub" id="cardDailySub">—</div>
+    </div>
+  </div>
+
+  <!-- ===== TRACKER VIEW ===== -->
+  <div class="view active" id="view-tracker">
+    <div class="main-grid">
+
+      <!-- Left: Transaction List -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            Transactions
+            <span class="panel-badge" id="txnBadge">0</span>
+          </div>
+          <div class="panel-actions">
+            <button class="btn-ghost" onclick="exportCSV()">⬇ Export CSV</button>
+            <button class="btn-ghost btn-danger" onclick="clearMonth()">Clear</button>
+          </div>
+        </div>
+        <div class="search-bar">
+          <input type="text" class="search-input" id="searchInput" placeholder="Search transactions…" oninput="renderExpenses()">
+          <button class="sort-btn" id="sortBtn" onclick="toggleSort()">Date ↓</button>
+        </div>
+        <div class="filter-bar" id="filterBar">
+          <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+          <button class="filter-btn" onclick="setFilter('food', this)">🍔 Food</button>
+          <button class="filter-btn" onclick="setFilter('transport', this)">🚌 Transport</button>
+          <button class="filter-btn" onclick="setFilter('study', this)">📚 Study</button>
+          <button class="filter-btn" onclick="setFilter('social', this)">🎉 Social</button>
+          <button class="filter-btn" onclick="setFilter('health', this)">💊 Health</button>
+          <button class="filter-btn" onclick="setFilter('shopping', this)">🛍️ Shopping</button>
+          <button class="filter-btn" onclick="setFilter('other', this)">📦 Other</button>
+        </div>
+        <div class="expense-list" id="expenseList"></div>
+      </div>
+
+      <!-- Right: Add Form + Chart -->
+      <div class="right-col">
+        <div class="add-form panel">
+          <div class="form-title"><span class="form-dot"></span>Add Expense</div>
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <input type="text" class="form-input" id="expDesc" placeholder="e.g. Mess food, Auto fare…" maxlength="60">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Amount (₹)</label>
+              <input type="number" class="form-input" id="expAmount" placeholder="0" min="1" step="0.01">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input type="date" class="form-input" id="expDate">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <div class="category-grid" id="categoryGrid">
+              <button class="cat-btn active" data-cat="food" onclick="selectCategory(this)"><span>🍔</span>Food</button>
+              <button class="cat-btn" data-cat="transport" onclick="selectCategory(this)"><span>🚌</span>Trans</button>
+              <button class="cat-btn" data-cat="study" onclick="selectCategory(this)"><span>📚</span>Study</button>
+              <button class="cat-btn" data-cat="social" onclick="selectCategory(this)"><span>🎉</span>Social</button>
+              <button class="cat-btn" data-cat="health" onclick="selectCategory(this)"><span>💊</span>Health</button>
+              <button class="cat-btn" data-cat="shopping" onclick="selectCategory(this)"><span>🛍️</span>Shop</button>
+              <button class="cat-btn" data-cat="other" onclick="selectCategory(this)"><span>📦</span>Other</button>
+            </div>
+          </div>
+          <button class="add-btn" onclick="addExpenseManual()">+ Add Expense</button>
+        </div>
+
+        <div class="chart-panel panel">
+          <div class="panel-title" style="padding:16px 18px 4px">Spending by Category</div>
+          <div class="donut-container">
+            <div class="donut-wrap">
+              <svg viewBox="0 0 120 120" id="donutSvg" class="donut-svg"></svg>
+              <div class="donut-center">
+                <div class="donut-total" id="donutTotal">₹0</div>
+                <div class="donut-label">total</div>
+              </div>
+            </div>
+            <div class="category-breakdown" id="categoryBreakdown"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== AI + VOICE VIEW ===== -->
+  <div class="view" id="view-ai">
+
+    <!-- Voice Modal -->
+    <div class="voice-modal-overlay" id="voiceOverlay">
+      <div class="voice-modal">
+        <div class="voice-modal-title">🎙️ Voice Input</div>
+        <div class="voice-lang-row">
+          <span class="voice-lang-label">Language</span>
+          <select class="voice-lang-select" id="voiceLang">
+            <option value="en-IN">English (India)</option>
+            <option value="en-US">English (US)</option>
+            <option value="hi-IN">Hindi</option>
+            <option value="ta-IN">Tamil</option>
+            <option value="te-IN">Telugu</option>
+            <option value="kn-IN">Kannada</option>
+            <option value="ml-IN">Malayalam</option>
+            <option value="mr-IN">Marathi</option>
+          </select>
+        </div>
+        <div class="waveform" id="waveform">
+          <div class="wave-bar" style="--mh:8px;--sp:.5s"></div>
+          <div class="wave-bar" style="--mh:24px;--sp:.7s"></div>
+          <div class="wave-bar" style="--mh:40px;--sp:.4s"></div>
+          <div class="wave-bar" style="--mh:48px;--sp:.6s"></div>
+          <div class="wave-bar" style="--mh:32px;--sp:.5s"></div>
+          <div class="wave-bar" style="--mh:44px;--sp:.8s"></div>
+          <div class="wave-bar" style="--mh:28px;--sp:.45s"></div>
+          <div class="wave-bar" style="--mh:42px;--sp:.65s"></div>
+          <div class="wave-bar" style="--mh:18px;--sp:.55s"></div>
+          <div class="wave-bar" style="--mh:36px;--sp:.7s"></div>
+          <div class="wave-bar" style="--mh:12px;--sp:.4s"></div>
+          <div class="wave-bar" style="--mh:30px;--sp:.6s"></div>
+        </div>
+        <div class="voice-transcript" id="voiceTranscript">
+          <span id="voiceTranscriptText">Tap Start and speak…</span>
+        </div>
+        <div class="voice-status">
+          <div class="voice-status-dot" id="voiceStatusDot"></div>
+          <span id="voiceStatusText">Ready</span>
+        </div>
+        <div class="voice-actions">
+          <button class="voice-cancel-btn" onclick="closeVoiceModal()">Cancel</button>
+          <button class="voice-start-btn" id="voiceStartBtn" onclick="toggleVoiceRecording()">▶ Start Listening</button>
+          <button class="voice-send-btn" id="voiceSendBtn" onclick="sendVoiceToAI()" disabled>Send to AI ✦</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ai-layout">
+      <!-- Chat Window -->
+      <div class="chat-window panel">
+        <div class="chat-header">
+          <div class="chat-header-left">
+            <div class="ai-avatar">✦</div>
+            <div>
+              <div class="chat-name">Paisa AI</div>
+              <div class="chat-sub">Your personal finance assistant</div>
+            </div>
+          </div>
+          <div class="chat-online"><span class="online-dot"></span>Online</div>
+        </div>
+        <div class="voice-live-banner" id="voiceLiveBanner"></div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="typing-indicator" id="typingIndicator">
+          <div class="ai-avatar" style="width:24px;height:24px;font-size:.7rem;flex-shrink:0">✦</div>
+          <div class="typing-dots">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        </div>
+        <div class="quick-prompts">
+          <button class="quick-btn" onclick="useQuickPrompt('Spent 150 on lunch today')">🍔 Lunch ₹150</button>
+          <button class="quick-btn" onclick="useQuickPrompt('Auto fare 80 and chai 25 today')">🚌 Auto + chai</button>
+          <button class="quick-btn" onclick="useQuickPrompt('How much have I spent this month?')">📊 This month</button>
+          <button class="quick-btn" onclick="useQuickPrompt('Am I on track with my budget?')">🎯 Budget check</button>
+          <button class="quick-btn" onclick="useQuickPrompt('Set my monthly budget to 6000')">💰 Set ₹6000</button>
+          <button class="quick-btn" onclick="useQuickPrompt('What is my biggest spending category?')">🏆 Top category</button>
+        </div>
+        <div class="chat-input-wrap">
+          <div class="chat-input-row">
+            <button class="mic-btn" id="micBtn" onclick="openVoiceModal()" title="Click to speak">🎙️</button>
+            <textarea class="chat-textarea" id="chatInput"
+              placeholder="Type or 🎙️ speak… e.g. 'spent 200 on chai and auto today'"
+              rows="1"
+              onkeydown="handleChatKey(event)"
+              oninput="autoResizeTextarea(this)"></textarea>
+            <button class="send-btn" id="sendBtn" onclick="sendChatMessage()">Send ✦</button>
+          </div>
+          <div class="chat-hint">🎙️ Click mic → speak → Send to AI &nbsp;·&nbsp; Works in Chrome &amp; Edge</div>
+        </div>
+      </div>
+
+      <!-- AI Sidebar -->
+      <div class="ai-sidebar">
+        <div class="ai-capabilities panel">
+          <div class="ai-cap-title">✦ What I can do</div>
+          <div class="capability">
+            <span class="cap-icon">🎙️</span>
+            <div class="cap-text"><strong>Voice input</strong> — speak expenses, added instantly</div>
+          </div>
+          <div class="capability">
+            <span class="cap-icon">💬</span>
+            <div class="cap-text"><strong>Natural language</strong> — "spent 120 on mess today"</div>
+          </div>
+          <div class="capability">
+            <span class="cap-icon">📋</span>
+            <div class="cap-text"><strong>Multiple at once</strong> — "chai 30, auto 60, lunch 120"</div>
+          </div>
+          <div class="capability">
+            <span class="cap-icon">📅</span>
+            <div class="cap-text"><strong>Relative dates</strong> — "yesterday", "last Monday"</div>
+          </div>
+          <div class="capability">
+            <span class="cap-icon">📊</span>
+            <div class="cap-text"><strong>Ask anything</strong> — "how much on food this month?"</div>
+          </div>
+          <div class="capability">
+            <span class="cap-icon">💰</span>
+            <div class="cap-text"><strong>Set budget</strong> — "set budget to ₹5000"</div>
+          </div>
+        </div>
+        <div class="ai-context panel">
+          <div class="ai-cap-title">📍 Current Context</div>
+          <div class="ctx-row"><span class="ctx-label">Month</span><span class="ctx-value" id="ctxMonth">—</span></div>
+          <div class="ctx-row"><span class="ctx-label">Budget</span><span class="ctx-value" id="ctxBudget">—</span></div>
+          <div class="ctx-row"><span class="ctx-label">Spent</span><span class="ctx-value" id="ctxSpent">—</span></div>
+          <div class="ctx-row"><span class="ctx-label">Remaining</span><span class="ctx-value" id="ctxRemaining">—</span></div>
+          <div class="ctx-row"><span class="ctx-label">Transactions</span><span class="ctx-value" id="ctxTxns">—</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== HISTORY VIEW ===== -->
+  <div class="view" id="view-history">
+    <div class="history-cards" id="historyCards"></div>
+    <div class="panel history-table">
+      <div class="panel-header">
+        <div class="panel-title">All Months</div>
+        <span class="history-count" id="historyCount">—</span>
+      </div>
+      <div class="history-table-header">
+        <span>Month</span><span>Budget</span><span>Spent</span><span>Status</span>
+      </div>
+      <div id="historyTableBody"></div>
+    </div>
+  </div>
+
+</div><!-- .app -->
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="js/db.js"></script>
+<script src="js/app.js"></script>
+<script src="js/ai.js"></script>
+</body>
+</html>
