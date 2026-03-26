@@ -20,10 +20,7 @@ function initAIChat() {
     `I can understand natural language for expenses.\n` +
     `Basic features work even **without an API key!**\n\n` +
     `Try:\n` +
-    `- *"spent 150 on mess today"*\n` +
-    `- *"chai 30, auto 60, lunch 120"*\n` +
-    `- *"set budget to 5000"*\n` +
-    `- *"how much have I spent?"*\n\n` +
+     
     (hasKey
       ? `✅ API key found — full AI mode active!\n\nClick 🎙️ for voice!`
       : `⚡ Running in **Smart Local Mode** — basic commands work instantly!\n\nFor advanced AI: click ⚙️ Settings to add your API key.`)
