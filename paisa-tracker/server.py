@@ -11,7 +11,8 @@ import urllib.error
 import os
 import sys
 
-PORT = 8080
+
+PORT = int(os.environ.get("PORT", 8080))
 
 class PaisaHandler(http.server.SimpleHTTPRequestHandler):
 
